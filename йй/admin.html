@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <title>Админ Хуудас - Болзоо</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background-color: #4caf50;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Хүн бүрийн сонголтууд</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Нэр</th>
+        <th>Өдөр</th>
+        <th>Цаг</th>
+        <th>Газар</th>
+      </tr>
+    </thead>
+    <tbody id="data-body">
+      <!-- Сонголтууд энд орно -->
+    </tbody>
+  </table>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD2EfIJzuQ2vXmjnuw5MPXkff4WHz_9tA",
+      authDomain: "dating-adac5.firebaseapp.com",
+      databaseURL: "https://dating-adac5-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "dating-adac5",
+      storageBucket: "dating-adac5.appspot.com",
+      messagingSenderId: "545852389350",
+      appId: "1:545852389350:web:2cb6bda5bbe24560a10827",
+      measurementId: "G-HMEQQWHV8C"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const tableBody = document.getElementById("data-body");
+
+    db.ref("selections").on("value", (snapshot) => {
+      tableBody.innerHTML = "";
+      const data = snapshot.val();
+      if (data) {
+        Object.values(data).forEach((entry) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${entry.name}</td>
+            <td>${entry.date}</td>
+            <td>${entry.time}</td>
+            <td>${entry.location}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } else {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td colspan="4" style="text-align:center; color:#888;">Одоогоор мэдээлэл алга</td>`;
+        tableBody.appendChild(row);
+      }
+    });
+  </script>
+</body>
+</html>

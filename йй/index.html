@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Болзоо </title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Arial', sans-serif; }
+    body {
+      background: linear-gradient(-45deg, #ffdee9, #b5fffc, #ffe6fa, #e0c3fc);
+      background-size: 400% 400%;
+      animation: backgroundShift 15s ease infinite;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+    @keyframes backgroundShift {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+    .heart {
+      position: fixed;
+      animation: floatHeart 4s infinite ease-in-out;
+      font-size: 32px;
+      z-index: 10;
+      top: 70%;
+      left: 70%;
+    }
+    @keyframes floatHeart {
+      0% { transform: translateY(0); opacity: 1; }
+      50% { transform: translateY(-20px) scale(1.2); }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    .emoji {
+      position: absolute;
+      font-size: 24px;
+      animation: floatEmoji 6s linear infinite;
+    }
+    @keyframes floatEmoji {
+      0% { bottom: -50px; opacity: 0; }
+      30% { opacity: 1; }
+      100% { bottom: 110%; opacity: 0; }
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 30px 20px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      overflow-x: hidden;
+    }
+
+    h1, h2 {
+      color: #ff4b8d;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+    .date-options, .time-options, .location-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .date-option, .time-option {
+      background: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .date-option.selected, .time-option.selected, .location-card.selected {
+      border-color: #4caf50;
+      background-color: #e8f5e9;
+    }
+    .location-card {
+    width: 100%;
+    }
+
+    @media (max-width: 600px) {
+    .container {
+    padding: 20px 10px;
+    }
+    .location-card {
+    width: 100%;
+    }
+    .location-card img {
+    height: 100px;
+    }
+    .date-option, .time-option {
+    padding: 8px 10px;
+    font-size: 14px;
+    }
+    .btn, .submit-btn, .back-btn {
+    font-size: 14px;
+    padding: 10px 20px;
+    }
+    h1, h2 {
+    font-size: 20px;
+    }
+    }
+
+
+    .location-card:hover {
+      transform: translateY(-5px);
+    }
+    .location-card img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+    .location-card h3 {
+      margin: 10px 0 5px;
+      font-size: 16px;
+    }
+    .location-card p {
+      font-size: 13px;
+      color: #666;
+      padding: 0 10px 15px;
+    }
+    .btn, .submit-btn, .back-btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px auto;
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+    .btn-yes {
+      background-color: #4caf50;
+      color: #fff;
+      animation: pulse 1.5s infinite;
+    }
+    .btn-no {
+      background-color: #f44336;
+      color: #fff;
+    }
+    .submit-btn { background-color: #4caf50; color: #fff; width: 100%; }
+    .back-btn { background-color: #aaa; color: #fff; width: 100%; }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    #no-message {
+      font-size: 16px;
+      color: #555;
+      margin-top: 10px;
+    }
+    @media (max-width: 600px) {
+      .location-card img { height: 100px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- MP3 хөгжим -->
+  <audio autoplay loop muted id="bg-music"></audio>
+
+  <script>
+    const audio = document.getElementById('bg-music');
+    audio.src = "kendrick-lamar-sza-luther.mp3";
+    setTimeout(() => {
+      audio.muted = false;
+      audio.play();
+    }, 500); // хэрэглэгч interaction хийсний дараа ч байж болно
+  </script>
+  
+
+  <!-- Зүрх хөдөлгөөнтэй -->
+  <div class="heart">❤️</div>
+
+  <!-- Emoji effect (аюулгүйгээр динамикаар нэмэх) -->
+  <script>
+    const emojis = ['💖', '🌸', '✨', '😊', '💫'];
+    setInterval(() => {
+      const emoji = document.createElement('div');
+      emoji.className = 'emoji';
+      emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      emoji.style.left = Math.random() * 100 + 'vw';
+      emoji.style.bottom = '-50px';
+      document.body.appendChild(emoji);
+      setTimeout(() => emoji.remove(), 7000);
+    }, 1000);
+  </script>
+</head>
+<body>
+  <div class="container" id="main-page">
+    <h1>Болзоонд явах уу?</h1>
+    <button class="btn btn-yes" onclick="showDateTimePicker()">Тийм</button>
+    <button class="btn btn-no" onclick="showResult('no')">Үгүй</button>
+    <div id="no-message"></div>
+  </div>
+
+  <div class="container" id="date-time-page" style="display:none">
+    <h2>Болзооны өдөр, цаг сонгоно уу</h2>
+    <input type="text" id="user-name" placeholder="Чамайг яаж дуудвал зүгээр вэ?">
+    <div class="date-options">
+      <div class="date-option" onclick="selectDate(this, '2025-03-29')">Бямба<br>3/29</div>
+      <div class="date-option" onclick="selectDate(this, '2025-03-30')">Ням<br>3/30</div>
+      <div class="date-option" onclick="selectDate(this, '2025-04-05')">Бямба<br>4/5</div>
+      <div class="date-option" onclick="selectDate(this, '2025-04-06')">Ням<br>4/6</div>
+    </div>
+    <div class="time-options">
+      <div class="time-option" onclick="selectTime(this, '12:00')">12:00</div>
+      <div class="time-option" onclick="selectTime(this, '15:00')">15:00</div>
+      <div class="time-option" onclick="selectTime(this, '18:00')">18:00</div>
+      <div class="time-option" onclick="selectTime(this, '19:00')">19:00</div>
+      <div class="time-option" onclick="selectTime(this, '20:00')">20:00</div>
+    </div>
+    <div class="location-options">
+        <div class="location-card" onclick="selectLocation(this, 'Art')">
+            <img src="485002527_1307188597218445_5208556487471552066_n.jpg" alt="Art">
+            <h3>Whee Craft&Art</h3>
+            <p>Романтик орчин, Гар урлал болон Зургийн урлан.</p>
+        </div>
+        <div class="location-card" onclick="selectLocation(this, 'cafe')">
+            <img src="484979990_1170329577451299_1274321528067834959_n.jpg" alt="Cafe">
+            <h3>Cat Home Cofe</h3>
+            <p>Кофе, тайван орчин, Муур.</p>
+        </div>
+        <div class="location-card" onclick="selectLocation(this, 'cinema')">
+            <img src="481620973_1426402965468482_6911584469526751724_n.jpg" alt="Cinema">
+            <h3>Өргөө Кино Театр</h3>
+            <p>Dolby Atmos, тав тухтай суудал.</p>
+        </div>
+        <div class="location-card" onclick="selectLocation(this, 'park')">
+            <img src="480075088_1172692210531894_2571024743589022249_n.jpg" alt="Park">
+            <h3>Үндэсний Цэцэрлэгт Хүрээлэн</h3>
+            <p>Цэвэр агаар, байгальтай газар.</p>
+        </div>
+    </div>
+    <input type="hidden" id="selected-date">
+    <input type="hidden" id="selected-time">
+    <input type="hidden" id="selected-location">
+    <button class="submit-btn" onclick="confirmDateTime()">Зөвшөөрөх</button>
+    <button class="back-btn" onclick="returnToMain()">Буцах</button>
+  </div>
+
+  <div class="container" id="result-page" style="display:none">
+    <h1 id="result-title"></h1>
+    <p id="result-message"></p>
+    <button class="back-btn" onclick="returnToMain()">Буцах</button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD2EfIJzuQ2vXmjnuw5MPXkff4WHz_9tA",
+      authDomain: "dating-adac5.firebaseapp.com",
+      databaseURL: "https://dating-adac5-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "dating-adac5",
+      storageBucket: "dating-adac5.appspot.com",
+      messagingSenderId: "545852389350",
+      appId: "1:545852389350:web:2cb6bda5bbe24560a10827"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const locationData = {
+      whee: { name: 'Whee Craft&Art' },
+      catcafe: { name: 'Cat Home Cafe' },
+      imax: { name: 'Өргөө Кино Театр' },
+      park: { name: 'Үндэсний Цэцэрлэгт Хүрээлэн' }
+    };
+
+    let noClickCount = 0;
+
+    function showDateTimePicker() {
+      document.getElementById('main-page').style.display = 'none';
+      document.getElementById('date-time-page').style.display = 'block';
+    }
+
+    function selectDate(el, date) {
+      document.querySelectorAll('.date-option').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('selected-date').value = date;
+    }
+
+    function selectTime(el, time) {
+      document.querySelectorAll('.time-option').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('selected-time').value = time;
+    }
+
+    function selectLocation(el, location) {
+      document.querySelectorAll('.location-card').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('selected-location').value = location;
+    }
+
+    function confirmDateTime() {
+      const name = document.getElementById('user-name').value.trim();
+      const date = document.getElementById('selected-date').value;
+      const time = document.getElementById('selected-time').value;
+      const location = document.getElementById('selected-location').value;
+      if (!name || !date || !time || !location) {
+        alert('Бүх мэдээллээ бүрэн сонгоно уу.');
+        return;
+      }
+      db.ref('selections').push().set({ name, date, time, location });
+      const locationName = locationData[location]?.name || location;
+      document.getElementById('result-title').textContent = 'Болзоог тохирлоо!';
+      document.getElementById('result-message').textContent = `${name} та ${date} - ${time} цагт ${locationName}-д уулзахаар сонголоо ❤️`;
+      document.getElementById('date-time-page').style.display = 'none';
+      document.getElementById('result-page').style.display = 'block';
+    }
+
+    function showResult(type) {
+      const title = document.getElementById('result-title');
+      const message = document.getElementById('result-message');
+      if (type === 'no') {
+        noClickCount++;
+        const yesBtn = document.querySelector('.btn-yes');
+        const noBtn = document.querySelector('.btn-no');
+        const noMsg = document.getElementById('no-message');
+        yesBtn.style.transform = `scale(${1 + noClickCount * 0.2})`;
+        if (noClickCount >= 3) {
+          noBtn.style.display = 'none';
+          noMsg.textContent = '';
+        } else {
+          noBtn.style.transform = `scale(${1 - noClickCount * 0.2})`;
+          noMsg.textContent = [
+            'Үнэхээр итгэлтэй байна уу?',
+            'Сайн бодоорой 🤔',
+            'Тийм л дээр байхаа даа 😢'
+          ][noClickCount - 1] || '';
+        }
+        return;
+      }
+      title.textContent = 'Харамсалтай байна 😢';
+      message.textContent = 'Дараа болзоонд урина гэж найдаж байна.';
+      document.getElementById('main-page').style.display = 'none';
+      document.getElementById('result-page').style.display = 'block';
+    }
+
+    function returnToMain() {
+      document.getElementById('main-page').style.display = 'block';
+      document.getElementById('date-time-page').style.display = 'none';
+      document.getElementById('result-page').style.display = 'none';
+      document.getElementById('no-message').textContent = '';
+      noClickCount = 0;
+      document.querySelector('.btn-no').style.display = 'inline-block';
+      document.querySelector('.btn-no').style.transform = 'scale(1)';
+      document.querySelector('.btn-yes').style.transform = 'scale(1)';
+    }
+  </script>
+</body>
+</html>
